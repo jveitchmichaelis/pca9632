@@ -44,12 +44,12 @@ LED_MODE_DIM = 0x2
 LED_MODE_GROUP_DIM = 0x4
 
 class Controller:
-   
+
     def __init__(self, address=0x70, channel=1):
         self.i2c_channel = channel
         self.bus = SMBus(self.i2c_channel)
         self.address = address
-        
+
         self.power_on()
 
         for i in range(4):
@@ -58,7 +58,7 @@ class Controller:
     def reset(self):
         self.bus.write_byte_data(0x03, 0xA5, 0x5A) 
 
-    def print_registers(self): 
+    def print_registers(self):
         print("-- Registers -- ")
         self.print_byte_reg(REG_MODE1)
         self.print_byte_reg(REG_MODE2)
@@ -68,7 +68,7 @@ class Controller:
         self.print_byte_reg(REG_PWM3)
         self.print_byte_reg(REG_LEDOUT)
         self.print_byte_reg(REG_ALLCALL)
-        
+
     def _read(self, reg):
         return self.bus.read_byte_data(self.address, reg)
 
@@ -77,13 +77,13 @@ class Controller:
         config |= (1 << 2*i)
         config |= (1 << 2*i+ 1)
         self.bus.write_byte_data(self.address, REG_LEDOUT, config)
-    
+
     def led_disable(self, i):
         config = self._read(REG_LEDOUT)
         mode = LED_MODE_OFF
         config &= ~(1 << 2*i)
         config &= ~(1 << 2*i+1)
-            
+
         self.bus.write_byte_data(self.address, REG_LEDOUT, config)
 
     def led_enabled(self, i):
@@ -93,6 +93,10 @@ class Controller:
             return True
 
         return False
+
+    def set_leds(self, values):
+        reg = PCA_AUTOINCREMENT_INDIVIDUAL | REG_PWM0
+        res = self.bus.write_i2c_block_data(self.address, reg, values)
 
     def power_on(self):
         config = self._read(REG_MODE1)
@@ -105,14 +109,10 @@ class Controller:
         self.bus.write_byte_data(self.address, REG_MODE1, config)
 
     def all_on(self):
-        reg = PCA_AUTOINCREMENT_ALL | REG_PWM0
-        val = [255,255,255,255]
-        res = self.bus.write_i2c_block_data(self.address, reg, val)
+        self.set_leds([255,255,255,255])
 
     def all_off(self):
-        reg = PCA_AUTOINCREMENT_ALL | REG_PWM0
-        val = [0,0,0,0]
-        res = self.bus.write_i2c_block_data(self.address, reg, val)
+        self.set_leds([0,0,0,0])
 
     def print_byte_reg(self, reg):
         print("{:08b}".format(self.bus.read_byte_data(self.address, reg)))
